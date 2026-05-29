@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrador — Copa Mundial Repsol</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a1628; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  .toolbar { display: flex; gap: 6px; padding: 10px; background: #071020; flex-shrink: 0; align-items: center; border-bottom: 1px solid #1e3060; }
+  .tab-btn { background: #132040; color: #aabbcc; border: 1px solid #1e3060; border-radius: 8px; padding: 7px 16px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
+  .tab-btn:hover { background: #1e3060; }
+  .tab-btn.active { background: #ff6b00; border-color: #ff6b00; color: #fff; font-weight: 600; }
+  .toolbar-title { color: #556688; font-size: 0.75rem; margin-left: auto; padding-right: 4px; }
+
+  .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+  /* Canvas */
+  .canvas-area { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
+  canvas { max-width: 100%; max-height: 100%; display: block; cursor: crosshair; }
+  .hud { position: absolute; bottom: 12px; left: 12px; background: rgba(0,10,20,0.92); border: 1px solid #445577; border-radius: 8px; padding: 5px 14px; font-size: 0.8rem; color: #667799; font-family: monospace; pointer-events: none; transition: border-color 0.2s, color 0.2s; }
+  .hud.active { border-color: #ff6b00; color: #ff6b00; }
+  .hint { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(9,189,210,0.12); border: 1px solid #09bdd2; border-radius: 8px; padding: 5px 16px; font-size: 0.78rem; color: #09bdd2; pointer-events: none; white-space: nowrap; }
+
+  /* Side panel */
+  .side { width: 310px; background: #0d1c38; display: flex; flex-direction: column; border-left: 1px solid #1e3060; overflow: hidden; }
+  .side-head { padding: 10px 14px 8px; font-size: 0.7rem; color: #8899bb; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #1e3060; flex-shrink: 0; }
+  .fields { flex: 1; overflow-y: auto; padding: 8px; }
+
+  .row { display: flex; align-items: center; gap: 7px; padding: 7px 8px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; margin-bottom: 4px; transition: all 0.15s; }
+  .row:hover { background: #132040; }
+  .row.sel { background: #1c0800; border-color: #ff6b00; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #ef601b; flex-shrink: 0; margin-top: 1px; }
+  .row.sel .dot { background: #09bdd2; }
+  .lbl { font-size: 0.72rem; color: #99aacc; flex: 1; line-height: 1.35; }
+  .row.sel .lbl { color: #fff; }
+  .xy { display: flex; gap: 4px; }
+  .xy input { width: 48px; background: #132040; border: 1px solid #1e3060; border-radius: 4px; color: #ccc; padding: 3px 5px; font-size: 0.78rem; text-align: center; font-family: monospace; }
+  .row.sel .xy input { border-color: #ff6b00; color: #fff; }
+  .xy input:focus { outline: none; border-color: #09bdd2 !important; }
+
+  .side-foot { padding: 10px 12px; border-top: 1px solid #1e3060; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+  .btn { width: 100%; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 600; border: 1px solid; transition: all 0.2s; }
+  .btn-reset { background: transparent; border-color: #445577; color: #778899; }
+  .btn-reset:hover { border-color: #ff4444; color: #ff6666; }
+  .btn-export { background: transparent; border-color: #09bdd2; color: #09bdd2; }
+  .btn-export:hover { background: #09bdd2; color: #000; }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 100; align-items: center; justify-content: center; }
+  .overlay.open { display: flex; }
+  .modal { background: #0d1c38; border: 1px solid #1e3060; border-radius: 12px; padding: 20px; width: 92%; max-width: 640px; max-height: 82vh; display: flex; flex-direction: column; gap: 12px; }
+  .modal h3 { font-size: 0.88rem; color: #ff6b00; }
+  .modal p { font-size: 0.75rem; color: #8899bb; line-height: 1.5; }
+  .modal pre { flex: 1; overflow-y: auto; background: #071020; border: 1px solid #1e3060; border-radius: 6px; padding: 12px; font-size: 0.76rem; color: #aaffcc; font-family: monospace; white-space: pre; min-height: 120px; }
+  .modal-btns { display: flex; gap: 8px; }
+  .btn-copy { flex: 1; padding: 9px; background: #ff6b00; border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+  .btn-close { flex: 1; padding: 9px; background: transparent; border: 1px solid #445577; border-radius: 8px; color: #aabbcc; cursor: pointer; font-size: 0.85rem; }
+  .copied { background: #09bdd2 !important; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="tab-btn active" onclick="switchSport('fm',this)">Fútbol Masculino</button>
+  <button class="tab-btn" onclick="switchSport('vl',this)">Vóley Mixto</button>
+  <button class="tab-btn" onclick="switchSport('pd',this)">Pádel</button>
+  <button class="tab-btn" onclick="switchSport('ff',this)">Fútbol Femenino</button>
+  <span class="toolbar-title">Calibrador de posiciones · Fase 1</span>
+</div>
+
+<div class="main">
+  <div class="canvas-area" id="area">
+    <canvas id="cv"></canvas>
+    <div class="hud" id="hud">x: — | y: —</div>
+    <div class="hint" id="hint" style="display:none"></div>
+  </div>
+
+  <div class="side">
+    <div class="side-head">Seleccioná una fila → hacé clic en la imagen</div>
+    <div class="fields" id="fields"></div>
+    <div class="side-foot">
+      <button class="btn btn-reset" onclick="resetSport()">Resetear posiciones de este deporte</button>
+      <button class="btn btn-export" onclick="openExport()">Fijar posiciones en index.html →</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Fijar posiciones en index.html (para GitHub)</h3>
+    <p>Copiá este bloque y reemplazá la constante <code>FASE1_COORDS</code> en <strong>index.html</strong> (líneas que dicen <code>const FASE1_COORDS = {</code>). Así las posiciones quedan grabadas en el código y funcionan en cualquier navegador o dispositivo.</p>
+    <pre id="code-out"></pre>
+    <div class="modal-btns">
+      <button class="btn-copy" id="copy-btn" onclick="copyCode()">Copiar al portapapeles</button>
+      <button class="btn-close" onclick="closeExport()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATOS DE CAMPOS =====
+const DEFAULTS = {
+  fm: {
+    img: 'resultados1/futbol_masculino.jpg',
+    fields: [
+      { id:'fm1_c1_1', label:'Campo 1 — 07:40  Marruecos vs Brasil',     x:28.5, y:48.0 },
+      { id:'fm1_c1_2', label:'Campo 1 — 08:30  Marruecos vs Portugal',   x:28.5, y:52.5 },
+      { id:'fm1_c2_1', label:'Campo 2 — 07:40  Francia vs Inglaterra',   x:57.0, y:48.0 },
+      { id:'fm1_c2_2', label:'Campo 2 — 08:30  Francia vs España',       x:57.0, y:52.5 },
+      { id:'fm1_c3_1', label:'Campo 3 — 07:40  Argentina vs Ecuador',    x:85.5, y:48.0 },
+      { id:'fm1_c3_2', label:'Campo 3 — 08:30  Argentina vs P.Bajos',    x:85.5, y:52.5 },
+    ]
+  },
+  vl: {
+    img: 'resultados1/voley.jpg',
+    fields: [
+      { id:'vl1_c1_1', label:'C1 — 07:40  EE.UU vs Suiza',           x:22.5, y:40.0 },
+      { id:'vl1_c1_2', label:'C1 — 08:20  Perú vs Senegal',          x:22.5, y:44.5 },
+      { id:'vl1_c1_3', label:'C1 — 09:00  Corea del Sur vs México',  x:22.5, y:49.0 },
+      { id:'vl1_c1_4', label:'C1 — 09:40  Perú vs Japón',            x:22.5, y:53.5 },
+      { id:'vl1_c1_5', label:'C1 — 10:20  EE.UU vs Uruguay',         x:22.5, y:58.0 },
+      { id:'vl1_c2_1', label:'C2 — 07:40  Corea del Sur vs Uruguay', x:45.5, y:40.0 },
+      { id:'vl1_c2_2', label:'C2 — 08:20  Japón vs Croacia',         x:45.5, y:44.5 },
+      { id:'vl1_c2_3', label:'C2 — 09:00  México vs Suiza',          x:45.5, y:49.0 },
+      { id:'vl1_c2_4', label:'C2 — 09:40  Irán vs Senegal',          x:45.5, y:53.5 },
+      { id:'vl1_c2_5', label:'C2 — 10:20  Corea del Sur vs México',  x:45.5, y:58.0 },
+    ]
+  },
+  pd: {
+    img: 'resultados1/padel.jpg',
+    fields: [
+      { id:'pd1_c1_1', label:'C1 — 07:40  Arabia S. vs Paraguay',  x:22.0, y:36.0 },
+      { id:'pd1_c1_2', label:'C1 — 08:10  Canadá vs Panamá',       x:22.0, y:41.0 },
+      { id:'pd1_c1_3', label:'C1 — 08:40  Arabia S. vs Suecia',    x:22.0, y:46.0 },
+      { id:'pd1_c1_4', label:'C1 — 09:10  Canadá vs Noruega',      x:22.0, y:51.0 },
+      { id:'pd1_c1_5', label:'C1 — 09:40  Arabia S. vs Turquía',   x:22.0, y:56.0 },
+      { id:'pd1_c2_1', label:'C2 — 07:40  Suecia vs Turquía',      x:45.0, y:36.0 },
+      { id:'pd1_c2_2', label:'C2 — 08:10  Noruega vs Australia',   x:45.0, y:41.0 },
+      { id:'pd1_c2_3', label:'C2 — 08:40  Austria vs Paraguay',    x:45.0, y:46.0 },
+      { id:'pd1_c2_4', label:'C2 — 09:10  Egipto vs Panamá',       x:45.0, y:51.0 },
+      { id:'pd1_c2_5', label:'C2 — 09:40  Suecia vs Austria',      x:45.0, y:56.0 },
+    ]
+  },
+  ff: {
+    img: 'resultados1/futbol_femenino.jpg',
+    fields: [
+      { id:'ff2_1', label:'Campo 2 — 07:00  Alemania vs Bélgica',  x:71.0, y:38.0 },
+      { id:'ff2_2', label:'Campo 2 — 07:50  Alemania vs Colombia', x:71.0, y:44.0 },
+      { id:'ff2_3', label:'Campo 2 — 08:40  Bélgica vs Colombia',  x:71.0, y:50.0 },
+    ]
+  }
+};
+
+// Clonar para edición, cargando lo guardado
+const DATA = JSON.parse(JSON.stringify(DEFAULTS));
+(function loadSaved() {
+  const raw = localStorage.getItem('calibration_coords');
+  if (!raw) return;
+  const saved = JSON.parse(raw);
+  Object.keys(DATA).forEach(sport => {
+    DATA[sport].fields.forEach(f => {
+      if (saved[f.id]) { f.x = saved[f.id].x; f.y = saved[f.id].y; }
+    });
+  });
+})();
+
+// ===== ESTADO =====
+let sport = 'fm';
+let selIdx = -1;
+const imgCache = {};
+
+function loadImg(src) {
+  return new Promise(res => {
+    if (imgCache[src]) { res(imgCache[src]); return; }
+    const img = new Image();
+    img.onload = () => { imgCache[src] = img; res(img); };
+    img.src = src;
+  });
+}
+
+// ===== TABS =====
+function switchSport(s, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  sport = s;
+  selIdx = -1;
+  buildList();
+  render();
+  updateHint();
+}
+
+// ===== LISTA DE CAMPOS =====
+function buildList() {
+  const fields = DATA[sport].fields;
+  const el = document.getElementById('fields');
+  el.innerHTML = '';
+  fields.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'row' + (i === selIdx ? ' sel' : '');
+    row.innerHTML = `
+      <div class="dot"></div>
+      <div class="lbl">${f.label}</div>
+      <div class="xy">
+        <input type="number" step="0.5" min="0" max="100" value="${f.x.toFixed(1)}" title="X%" oninput="setCoord(${i},'x',this.value)">
+        <input type="number" step="0.5" min="0" max="100" value="${f.y.toFixed(1)}" title="Y%" oninput="setCoord(${i},'y',this.value)">
+      </div>`;
+    row.addEventListener('click', e => { if (e.target.tagName !== 'INPUT') selectRow(i); });
+    el.appendChild(row);
+  });
+}
+
+function selectRow(i) {
+  selIdx = (i === selIdx) ? -1 : i;
+  document.querySelectorAll('.row').forEach((r, j) => r.classList.toggle('sel', j === selIdx));
+  updateHint();
+  render();
+}
+
+function setCoord(i, axis, val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return;
+  DATA[sport].fields[i][axis] = Math.min(100, Math.max(0, v));
+  saveAll();
+  render();
+}
+
+function updateHint() {
+  const h = document.getElementById('hint');
+  if (selIdx >= 0) {
+    h.textContent = '↖ Clic en la imagen para posicionar: ' + DATA[sport].fields[selIdx].label;
+    h.style.display = 'block';
+  } else {
+    h.style.display = 'none';
+  }
+}
+
+// ===== CANVAS =====
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+async function render() {
+  const src = DATA[sport].img;
+  const img = await loadImg(src);
+  cv.width = img.naturalWidth;
+  cv.height = img.naturalHeight;
+  ctx.drawImage(img, 0, 0);
+  const W = cv.width, H = cv.height;
+  DATA[sport].fields.forEach((f, i) => drawPill(f.x, f.y, W, H, i === selIdx, i + 1));
+}
+
+function drawPill(xPct, yPct, W, H, selected, num) {
+  const cx = W * xPct / 100, cy = H * yPct / 100;
+  const pw = W * 0.042, ph = H * 0.030, r = ph / 2;
+  const x = cx - pw/2, y = cy - ph/2;
+  const col = selected ? '#09bdd2' : '#ef601b';
+  const fs = Math.min(W * 0.014, H * 0.022);
+  ctx.save();
+  ctx.fillStyle = selected ? 'rgba(9,189,210,0.18)' : 'rgba(0,10,20,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+pw,y,x+pw,y+ph,r);
+  ctx.arcTo(x+pw,y+ph,x,y+ph,r); ctx.arcTo(x,y+ph,x,y,r);
+  ctx.arcTo(x,y,x+pw,y,r); ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = selected ? Math.max(2,W*0.002) : Math.max(1,W*0.0012);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+pw,y,x+pw,y+ph,r);
+  ctx.arcTo(x+pw,y+ph,x,y+ph,r); ctx.arcTo(x,y+ph,x,y,r);
+  ctx.arcTo(x,y,x+pw,y,r); ctx.closePath();
+  ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.font = `600 ${fs}px "Segoe UI", Arial, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(num, cx, cy + 1);
+  ctx.restore();
+}
+
+// ===== MOUSE =====
+const hud = document.getElementById('hud');
+
+function imgCoords(e) {
+  const r = cv.getBoundingClientRect();
+  const sx = cv.width / r.width, sy = cv.height / r.height;
+  return {
+    x: ((e.clientX - r.left) * sx / cv.width * 100),
+    y: ((e.clientY - r.top)  * sy / cv.height * 100)
+  };
+}
+
+cv.addEventListener('mousemove', e => {
+  const { x, y } = imgCoords(e);
+  hud.textContent = `x: ${x.toFixed(1)}%  |  y: ${y.toFixed(1)}%`;
+  hud.className = selIdx >= 0 ? 'hud active' : 'hud';
+});
+
+cv.addEventListener('click', e => {
+  if (selIdx < 0) return;
+  const { x, y } = imgCoords(e);
+  const f = DATA[sport].fields[selIdx];
+  f.x = Math.round(x * 10) / 10;
+  f.y = Math.round(y * 10) / 10;
+  saveAll();
+  // Avanzar al siguiente
+  const next = selIdx + 1;
+  selIdx = next < DATA[sport].fields.length ? next : -1;
+  buildList();
+  if (selIdx >= 0) document.querySelectorAll('.row')[selIdx]?.scrollIntoView({ block:'nearest' });
+  updateHint();
+  render();
+});
+
+// ===== GUARDAR =====
+function saveAll() {
+  const out = {};
+  Object.keys(DATA).forEach(s => DATA[s].fields.forEach(f => { out[f.id] = { x: f.x, y: f.y }; }));
+  localStorage.setItem('calibration_coords', JSON.stringify(out));
+}
+
+// ===== RESET =====
+function resetSport() {
+  if (!confirm('¿Resetear las posiciones de ' + sport.toUpperCase() + ' a los valores por defecto?')) return;
+  DEFAULTS[sport].fields.forEach((df, i) => {
+    DATA[sport].fields[i].x = df.x;
+    DATA[sport].fields[i].y = df.y;
+  });
+  saveAll();
+  selIdx = -1;
+  buildList();
+  updateHint();
+  render();
+}
+
+// ===== EXPORT =====
+function openExport() {
+  const lines = ['const FASE1_COORDS = {'];
+  Object.keys(DATA).forEach((s, si) => {
+    lines.push(`  ${s}: [`);
+    DATA[s].fields.forEach(f => {
+      lines.push(`    { id:'${f.id}', x:${f.x.toFixed(1)}, y:${f.y.toFixed(1)} },`);
+    });
+    const comma = si < Object.keys(DATA).length - 1 ? '  ],' : '  ]';
+    lines[lines.length - 1] = lines[lines.length - 1]; // keep trailing comma on last field
+    lines.push(comma);
+  });
+  lines.push('};');
+  document.getElementById('code-out').textContent = lines.join('\n');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeExport() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('code-out').textContent).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '¡Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar al portapapeles'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ===== INIT =====
+buildList();
+render();
+</script>
+</body>
+</html>
