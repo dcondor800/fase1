@@ -202,6 +202,34 @@ const FASE1_IMG = {
   pd: 'resultados1/padel.jpg',
   ff: 'resultados1/futbol_femenino.jpg'
 };
+
+// Posiciones por defecto (se sobreescriben con calibration_coords del calibrador)
+const FASE1_COORDS = {
+  fm: [
+    { id:'fm1_c1_1', x:36.0, y:39.0 }, { id:'fm1_c1_2', x:36.0, y:42.5 },
+    { id:'fm1_c2_1', x:60.5, y:38.5 }, { id:'fm1_c2_2', x:60.5, y:42.5 },
+    { id:'fm1_c3_1', x:85.5, y:38.5 }, { id:'fm1_c3_2', x:85.5, y:42.5 },
+  ],
+  vl: [
+    { id:'vl1_c1_1', x:26.0, y:43.0 }, { id:'vl1_c1_2', x:26.0, y:46.5 },
+    { id:'vl1_c1_3', x:26.0, y:50.0 }, { id:'vl1_c1_4', x:26.0, y:53.5 },
+    { id:'vl1_c1_5', x:26.0, y:57.0 }, { id:'vl1_c2_1', x:45.5, y:43.0 },
+    { id:'vl1_c2_2', x:45.5, y:46.5 }, { id:'vl1_c2_3', x:45.5, y:50.0 },
+    { id:'vl1_c2_4', x:45.5, y:53.5 }, { id:'vl1_c2_5', x:45.5, y:57.0 },
+  ],
+  pd: [
+    { id:'pd1_c1_1', x:27.0, y:44.5 }, { id:'pd1_c1_2', x:27.0, y:47.5 },
+    { id:'pd1_c1_3', x:27.0, y:50.5 }, { id:'pd1_c1_4', x:27.0, y:53.5 },
+    { id:'pd1_c1_5', x:27.0, y:56.5 }, { id:'pd1_c2_1', x:46.5, y:44.5 },
+    { id:'pd1_c2_2', x:46.5, y:47.5 }, { id:'pd1_c2_3', x:46.5, y:50.5 },
+    { id:'pd1_c2_4', x:46.5, y:54.0 }, { id:'pd1_c2_5', x:46.5, y:57.0 },
+  ],
+  ff: [
+    { id:'ff2_1', x:71.0, y:44.5 }, { id:'ff2_2', x:71.0, y:48.0 },
+    { id:'ff2_3', x:71.0, y:52.0 },
+  ]
+};
+
 const fase1Cache = {};
 
 function loadFase1Img(key) {
@@ -255,8 +283,8 @@ function drawScorePill(ctx, text, xPct, yPct, W, H, color) {
 }
 
 async function renderFase1Sport(sport) {
-  const saved = localStorage.getItem('fase1_data');
-  const d = saved ? JSON.parse(saved) : {};
+  const d   = JSON.parse(localStorage.getItem('fase1_data')        || '{}');
+  const cal = JSON.parse(localStorage.getItem('calibration_coords') || '{}');
   const canvas = document.getElementById('f1-canvas-' + sport);
   const img = await loadFase1Img(sport);
   canvas.width  = img.naturalWidth;
@@ -264,56 +292,11 @@ async function renderFase1Sport(sport) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   ctx.drawImage(img, 0, 0);
-
-  if (sport === 'fm') {
-    // Fútbol Masculino — Fecha 1
-    // Resultado Campo 1: x≈28.5%  |  Campo 2: x≈57%  |  Campo 3: x≈85.5%
-    // Filas: 07:40 y≈48%  |  08:30 y≈52.5%
-    drawScorePill(ctx, d.fm1_c1_1, 28.5, 48.0, W, H);
-    drawScorePill(ctx, d.fm1_c1_2, 28.5, 52.5, W, H);
-    drawScorePill(ctx, d.fm1_c2_1, 57.0, 48.0, W, H);
-    drawScorePill(ctx, d.fm1_c2_2, 57.0, 52.5, W, H);
-    drawScorePill(ctx, d.fm1_c3_1, 85.5, 48.0, W, H);
-    drawScorePill(ctx, d.fm1_c3_2, 85.5, 52.5, W, H);
-
-  } else if (sport === 'vl') {
-    // Vóley Mixto — Fecha 1 (mitad izquierda de la imagen)
-    // Resultado Campo 1: x≈22.5%  |  Campo 2: x≈45.5%
-    // Filas: 07:40 y≈40%  |  08:20 y≈44.5%  |  09:00 y≈49%  |  09:40 y≈53.5%  |  10:20 y≈58%
-    drawScorePill(ctx, d.vl1_c1_1, 22.5, 40.0, W, H);
-    drawScorePill(ctx, d.vl1_c1_2, 22.5, 44.5, W, H);
-    drawScorePill(ctx, d.vl1_c1_3, 22.5, 49.0, W, H);
-    drawScorePill(ctx, d.vl1_c1_4, 22.5, 53.5, W, H);
-    drawScorePill(ctx, d.vl1_c1_5, 22.5, 58.0, W, H);
-    drawScorePill(ctx, d.vl1_c2_1, 45.5, 40.0, W, H);
-    drawScorePill(ctx, d.vl1_c2_2, 45.5, 44.5, W, H);
-    drawScorePill(ctx, d.vl1_c2_3, 45.5, 49.0, W, H);
-    drawScorePill(ctx, d.vl1_c2_4, 45.5, 53.5, W, H);
-    drawScorePill(ctx, d.vl1_c2_5, 45.5, 58.0, W, H);
-
-  } else if (sport === 'pd') {
-    // Pádel — Fecha 1 (mitad izquierda de la imagen)
-    // Resultado Campo 1: x≈22%  |  Campo 2: x≈45%
-    // Filas: 07:40 y≈36%  |  08:10 y≈41%  |  08:40 y≈46%  |  09:10 y≈51%  |  09:40 y≈56%
-    drawScorePill(ctx, d.pd1_c1_1, 22.0, 36.0, W, H);
-    drawScorePill(ctx, d.pd1_c1_2, 22.0, 41.0, W, H);
-    drawScorePill(ctx, d.pd1_c1_3, 22.0, 46.0, W, H);
-    drawScorePill(ctx, d.pd1_c1_4, 22.0, 51.0, W, H);
-    drawScorePill(ctx, d.pd1_c1_5, 22.0, 56.0, W, H);
-    drawScorePill(ctx, d.pd1_c2_1, 45.0, 36.0, W, H);
-    drawScorePill(ctx, d.pd1_c2_2, 45.0, 41.0, W, H);
-    drawScorePill(ctx, d.pd1_c2_3, 45.0, 46.0, W, H);
-    drawScorePill(ctx, d.pd1_c2_4, 45.0, 51.0, W, H);
-    drawScorePill(ctx, d.pd1_c2_5, 45.0, 56.0, W, H);
-
-  } else if (sport === 'ff') {
-    // Fútbol Femenino — Fase 1 (= Fecha 2 en este fixture)
-    // Resultado Campo 2: x≈71%
-    // Filas: 07:00 y≈38%  |  07:50 y≈44%  |  08:40 y≈50%
-    drawScorePill(ctx, d.ff2_1, 71.0, 38.0, W, H);
-    drawScorePill(ctx, d.ff2_2, 71.0, 44.0, W, H);
-    drawScorePill(ctx, d.ff2_3, 71.0, 50.0, W, H);
-  }
+  FASE1_COORDS[sport].forEach(f => {
+    const cx = cal[f.id] ? cal[f.id].x : f.x;
+    const cy = cal[f.id] ? cal[f.id].y : f.y;
+    drawScorePill(ctx, d[f.id], cx, cy, W, H);
+  });
 }
 
 function renderAllFase1() {
@@ -324,6 +307,7 @@ function renderAllFase1() {
 window.addEventListener('storage', e => {
   if (e.key === 'fixture_data') renderAll();
   if (e.key === 'fase1_data') renderAllFase1();
+  if (e.key === 'calibration_coords') renderAllFase1();
   if (e.key === 'fixture_dl_request' && e.newValue) {
     const sport = e.newValue;
     localStorage.removeItem('fixture_dl_request');
