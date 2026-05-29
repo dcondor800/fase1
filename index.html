@@ -3,18 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fixture — Copa Mundial Repsol</title>
+<title>Resultados Fase 1 — Copa Mundial Repsol</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-  .mode-toggle { display: flex; gap: 6px; justify-content: center; padding: 8px 10px 0; background: #0a1628; flex-shrink: 0; }
-  .mode-btn { background: #132040; color: #aabbcc; border: 1px solid #1e3060; border-radius: 8px; padding: 6px 22px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
-  .mode-btn:hover { background: #1e3060; color: #fff; }
-  .mode-btn.active { background: #ff6b00; border-color: #ff6b00; color: #fff; font-weight: 600; }
-
-  .section { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-  .section.hidden { display: none !important; }
 
   .tabs { display: flex; gap: 6px; justify-content: center; padding: 10px; background: #0a1628; flex-shrink: 0; }
   .tab-btn { background: #132040; color: #aabbcc; border: 1px solid #1e3060; border-radius: 8px; padding: 8px 20px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
@@ -28,174 +20,18 @@
 </head>
 <body>
 
-<!-- MODO -->
-<div class="mode-toggle">
-  <button class="mode-btn active" id="btn-fixture" onclick="setMode('fixture')">Fixture</button>
-  <button class="mode-btn" id="btn-fase1" onclick="setMode('fase1')">Resultados Fase 1</button>
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(event,'fm')">Fútbol Masculino</button>
+  <button class="tab-btn" onclick="switchTab(event,'vl')">Vóley Mixto</button>
+  <button class="tab-btn" onclick="switchTab(event,'pd')">Pádel</button>
+  <button class="tab-btn" onclick="switchTab(event,'ff')">Fútbol Femenino</button>
 </div>
-
-<!-- SECCIÓN FIXTURE (clasificados) -->
-<div class="section" id="fixture-section">
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchFixtureTab(event,'futbol-masc')">Fútbol Masculino</button>
-    <button class="tab-btn" onclick="switchFixtureTab(event,'voley')">Vóley Mixto</button>
-    <button class="tab-btn" onclick="switchFixtureTab(event,'padel')">Pádel</button>
-    <button class="tab-btn" onclick="switchFixtureTab(event,'futbol-fem')">Fútbol Femenino</button>
-  </div>
-  <div class="canvas-wrap active" id="wrap-futbol-masc"><canvas id="canvas-futbol-masc"></canvas></div>
-  <div class="canvas-wrap" id="wrap-voley"><canvas id="canvas-voley"></canvas></div>
-  <div class="canvas-wrap" id="wrap-padel"><canvas id="canvas-padel"></canvas></div>
-  <div class="canvas-wrap" id="wrap-futbol-fem"><canvas id="canvas-futbol-fem"></canvas></div>
-</div>
-
-<!-- SECCIÓN RESULTADOS FASE 1 -->
-<div class="section hidden" id="fase1-section">
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchFase1Tab(event,'fm')">Fútbol Masculino</button>
-    <button class="tab-btn" onclick="switchFase1Tab(event,'vl')">Vóley Mixto</button>
-    <button class="tab-btn" onclick="switchFase1Tab(event,'pd')">Pádel</button>
-    <button class="tab-btn" onclick="switchFase1Tab(event,'ff')">Fútbol Femenino</button>
-  </div>
-  <div class="canvas-wrap active" id="f1-wrap-fm"><canvas id="f1-canvas-fm"></canvas></div>
-  <div class="canvas-wrap" id="f1-wrap-vl"><canvas id="f1-canvas-vl"></canvas></div>
-  <div class="canvas-wrap" id="f1-wrap-pd"><canvas id="f1-canvas-pd"></canvas></div>
-  <div class="canvas-wrap" id="f1-wrap-ff"><canvas id="f1-canvas-ff"></canvas></div>
-</div>
+<div class="canvas-wrap active" id="wrap-fm"><canvas id="canvas-fm"></canvas></div>
+<div class="canvas-wrap" id="wrap-vl"><canvas id="canvas-vl"></canvas></div>
+<div class="canvas-wrap" id="wrap-pd"><canvas id="canvas-pd"></canvas></div>
+<div class="canvas-wrap" id="wrap-ff"><canvas id="canvas-ff"></canvas></div>
 
 <script>
-// ====== MODE TOGGLE ======
-function setMode(mode) {
-  document.getElementById('btn-fixture').classList.toggle('active', mode === 'fixture');
-  document.getElementById('btn-fase1').classList.toggle('active', mode === 'fase1');
-  document.getElementById('fixture-section').classList.toggle('hidden', mode !== 'fixture');
-  document.getElementById('fase1-section').classList.toggle('hidden', mode !== 'fase1');
-  if (mode === 'fase1') renderAllFase1();
-}
-
-// ====== FIXTURE (CLASIFICADOS) ======
-const IMG_SRC = {
-  'futbol-masc': 'FIXTURE_ACTUALIZADO/Futbol Masculino.jpeg',
-  'voley':       'FIXTURE_ACTUALIZADO/Voley Mixto.jpeg',
-  'padel':       'FIXTURE_ACTUALIZADO/Padel.jpeg',
-  'futbol-fem':  'FIXTURE_ACTUALIZADO/Futbol Femenino.jpeg'
-};
-const DL_NAMES = {
-  'futbol-masc': 'Fixture_Futbol_Masculino_Fecha3.jpg',
-  'voley':       'Fixture_Voley_Mixto_Fecha3.jpg',
-  'padel':       'Fixture_Padel_Fecha3.jpg',
-  'futbol-fem':  'Fixture_Futbol_Femenino_Fecha3.jpg'
-};
-
-let currentSport = 'futbol-masc';
-const imgCache = {};
-
-function loadImg(key, src) {
-  return new Promise(resolve => {
-    if (imgCache[key]) { resolve(imgCache[key]); return; }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => { imgCache[key] = img; resolve(img); };
-    img.src = src || IMG_SRC[key];
-  });
-}
-
-function switchFixtureTab(e, sport) {
-  document.querySelector('#fixture-section .tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#fixture-section .canvas-wrap').forEach(w => w.classList.remove('active'));
-  e.target.classList.add('active');
-  document.getElementById('wrap-' + sport).classList.add('active');
-  currentSport = sport;
-  renderSport(sport);
-}
-
-function dlCurrent() {
-  const c = document.getElementById('canvas-' + currentSport);
-  const a = document.createElement('a');
-  a.download = DL_NAMES[currentSport];
-  a.href = c.toDataURL('image/jpeg', 0.95);
-  a.click();
-}
-
-function pillPath(ctx, cx, cy, w, h) {
-  const r = h/2, x = cx - w/2, y = cy - h/2;
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.arcTo(x+w, y,   x+w, y+h, r);
-  ctx.arcTo(x+w, y+h, x,   y+h, r);
-  ctx.arcTo(x,   y+h, x,   y,   r);
-  ctx.arcTo(x,   y,   x+w, y,   r);
-  ctx.closePath();
-}
-
-function drawPill(ctx, text, cx, cy, sx, sy, customW, customColor, customH) {
-  const pw = (customW || 130) * sx;
-  const ph = (customH || 32)  * sy;
-  const fs = 22 * Math.min(sx, sy);
-  const color = customColor || '#ef601b';
-  const rx = cx * sx, ry = cy * sy;
-  ctx.save();
-  ctx.fillStyle = '#000A14';
-  pillPath(ctx, rx, ry, pw, ph);
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.8 * Math.min(sx, sy);
-  pillPath(ctx, rx, ry, pw, ph);
-  ctx.stroke();
-  ctx.fillStyle = color;
-  ctx.font = '600 ' + fs + 'px "Segoe UI", Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, rx, ry + 1);
-  ctx.restore();
-}
-
-function g(data, id, fallback) {
-  return (data[id] && data[id].trim()) ? data[id].trim() : fallback;
-}
-
-async function renderSport(sport) {
-  const saved = localStorage.getItem('fixture_data');
-  const data  = saved ? JSON.parse(saved) : {};
-  const canvas = document.getElementById('canvas-' + sport);
-  const img = await loadImg(sport);
-  canvas.width  = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-  const sx = canvas.width/2133, sy = canvas.height/1600;
-
-  if (sport === 'futbol-masc') {
-    drawPill(ctx, g(data,'fm-ga','G.A'),   734, 1131, sx, sy, 172, undefined, 32);
-    drawPill(ctx, g(data,'fm-gb','G.B'),   959, 1131, sx, sy, 172, undefined, 32);
-    drawPill(ctx, g(data,'fm-gc','G.C'),  1472, 1131, sx, sy, 172, undefined, 32);
-    drawPill(ctx, g(data,'fm-mp','M.P'),  1598, 1131, sx, sy, 172, undefined, 32);
-    drawPill(ctx, g(data,'fm-g1','G1'),    953, 1174, sx, sy, 170, undefined, 32);
-    drawPill(ctx, g(data,'fm-g2','G2'),   1178, 1174, sx, sy, 170, undefined, 32);
-  } else if (sport === 'voley') {
-    drawPill(ctx, g(data,'vl-1a','1ºA'),  748, 1075, sx, sy, 172);
-    drawPill(ctx, g(data,'vl-2b','2ºB'),  970, 1075, sx, sy, 172, '#09bdd2');
-    drawPill(ctx, g(data,'vl-1b','1ºB'), 1161, 1075, sx, sy, 172, '#09bdd2');
-    drawPill(ctx, g(data,'vl-2a','2ºA'), 1384, 1075, sx, sy, 172);
-    drawPill(ctx, g(data,'vl-f1','F1'),   750, 1118, sx, sy, 172);
-    drawPill(ctx, g(data,'vl-f2','F2'),   970, 1118, sx, sy, 172);
-  } else if (sport === 'padel') {
-    drawPill(ctx, g(data,'pd-1a','1ºA'),  741, 1091, sx, sy, 175);
-    drawPill(ctx, g(data,'pd-2b','2ºB'),  968, 1091, sx, sy, 175, '#09bdd2');
-    drawPill(ctx, g(data,'pd-1b','1ºB'), 1164, 1091, sx, sy, 175, '#09bdd2');
-    drawPill(ctx, g(data,'pd-2a','2ºA'), 1393, 1091, sx, sy, 175);
-    drawPill(ctx, g(data,'pd-f1','F1'),   741, 1135, sx, sy, 175);
-    drawPill(ctx, g(data,'pd-f2','F2'),   968, 1135, sx, sy, 175);
-  } else if (sport === 'futbol-fem') {
-    drawPill(ctx, g(data,'ff-1','1°'),   917, 1118, sx, sy, 225, '#09bdd2', 40);
-    drawPill(ctx, g(data,'ff-2','2°'), 1209, 1118, sx, sy, 225, '#09bdd2', 40);
-  }
-}
-
-function renderAll() {
-  ['futbol-masc','voley','padel','futbol-fem'].forEach(s => renderSport(s));
-}
-
-// ====== RESULTADOS FASE 1 ======
 const FASE1_IMG = {
   fm: 'resultados1/futbol_masculino.jpg',
   vl: 'resultados1/voley.jpg',
@@ -203,7 +39,6 @@ const FASE1_IMG = {
   ff: 'resultados1/futbol_femenino.jpg'
 };
 
-// Posiciones por defecto (se sobreescriben con calibration_coords del calibrador)
 const FASE1_COORDS = {
   fm: [
     { id:'fm1_c1_1', x:36.0, y:39.0 }, { id:'fm1_c1_2', x:36.0, y:42.5 },
@@ -230,64 +65,58 @@ const FASE1_COORDS = {
   ]
 };
 
-const fase1Cache = {};
-
-function loadFase1Img(key) {
+const imgCache = {};
+function loadImg(key) {
   return new Promise(resolve => {
-    if (fase1Cache[key]) { resolve(fase1Cache[key]); return; }
+    if (imgCache[key]) { resolve(imgCache[key]); return; }
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => { fase1Cache[key] = img; resolve(img); };
+    img.onload = () => { imgCache[key] = img; resolve(img); };
     img.src = FASE1_IMG[key];
   });
 }
 
-function switchFase1Tab(e, sport) {
-  document.querySelector('#fase1-section .tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#fase1-section .canvas-wrap').forEach(w => w.classList.remove('active'));
+function switchTab(e, sport) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.canvas-wrap').forEach(w => w.classList.remove('active'));
   e.target.classList.add('active');
-  document.getElementById('f1-wrap-' + sport).classList.add('active');
-  renderFase1Sport(sport);
+  document.getElementById('wrap-' + sport).classList.add('active');
+  renderSport(sport);
 }
 
-function drawScorePill(ctx, text, xPct, yPct, W, H, color) {
+function drawScorePill(ctx, text, xPct, yPct, W, H) {
   const val = (text && text.trim()) ? text.trim() : '–';
-  const cx = W * xPct / 100;
-  const cy = H * yPct / 100;
-  const pw = W * 0.042;
-  const ph = H * 0.030;
-  const r = ph / 2;
+  const cx = W * xPct / 100, cy = H * yPct / 100;
+  const pw = W * 0.042, ph = H * 0.030, r = ph / 2;
   const x = cx - pw/2, y = cy - ph/2;
   const fs = Math.min(W * 0.014, H * 0.022);
-  const col = color || '#ef601b';
   ctx.save();
   ctx.fillStyle = '#000A14';
   ctx.beginPath();
-  ctx.moveTo(x+r, y); ctx.arcTo(x+pw,y,x+pw,y+ph,r);
+  ctx.moveTo(x+r,y); ctx.arcTo(x+pw,y,x+pw,y+ph,r);
   ctx.arcTo(x+pw,y+ph,x,y+ph,r); ctx.arcTo(x,y+ph,x,y,r);
   ctx.arcTo(x,y,x+pw,y,r); ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = col;
+  ctx.strokeStyle = '#09bdd2';
   ctx.lineWidth = Math.max(1, W * 0.0012);
   ctx.beginPath();
-  ctx.moveTo(x+r, y); ctx.arcTo(x+pw,y,x+pw,y+ph,r);
+  ctx.moveTo(x+r,y); ctx.arcTo(x+pw,y,x+pw,y+ph,r);
   ctx.arcTo(x+pw,y+ph,x,y+ph,r); ctx.arcTo(x,y+ph,x,y,r);
   ctx.arcTo(x,y,x+pw,y,r); ctx.closePath();
   ctx.stroke();
-  ctx.fillStyle = col;
+  ctx.fillStyle = '#09bdd2';
   ctx.font = `600 ${fs}px "Segoe UI", Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(val, cx, cy + 1);
   ctx.restore();
 }
 
-async function renderFase1Sport(sport) {
-  const d   = JSON.parse(localStorage.getItem('fase1_data')        || '{}');
+async function renderSport(sport) {
+  const d   = JSON.parse(localStorage.getItem('fase1_data')         || '{}');
   const cal = JSON.parse(localStorage.getItem('calibration_coords') || '{}');
-  const canvas = document.getElementById('f1-canvas-' + sport);
-  const img = await loadFase1Img(sport);
-  canvas.width  = img.naturalWidth;
+  const canvas = document.getElementById('canvas-' + sport);
+  const img = await loadImg(sport);
+  canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -299,23 +128,12 @@ async function renderFase1Sport(sport) {
   });
 }
 
-function renderAllFase1() {
-  ['fm','vl','pd','ff'].forEach(s => renderFase1Sport(s));
+function renderAll() {
+  ['fm','vl','pd','ff'].forEach(s => renderSport(s));
 }
 
-// ====== STORAGE (tiempo real) ======
 window.addEventListener('storage', e => {
-  if (e.key === 'fixture_data') renderAll();
-  if (e.key === 'fase1_data') renderAllFase1();
-  if (e.key === 'calibration_coords') renderAllFase1();
-  if (e.key === 'fixture_dl_request' && e.newValue) {
-    const sport = e.newValue;
-    localStorage.removeItem('fixture_dl_request');
-    renderSport(sport).then(() => {
-      currentSport = sport;
-      dlCurrent();
-    });
-  }
+  if (e.key === 'fase1_data' || e.key === 'calibration_coords') renderAll();
 });
 
 window.addEventListener('load', renderAll);
