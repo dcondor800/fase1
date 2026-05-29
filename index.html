@@ -87,7 +87,7 @@ function switchTab(e, sport) {
 function drawScorePill(ctx, text, xPct, yPct, W, H) {
   const val = (text && text.trim()) ? text.trim() : '–';
   const cx = W * xPct / 100, cy = H * yPct / 100;
-  const pw = W * 0.058 + 10, ph = H * 0.030, r = ph / 2;
+  const pw = W * 0.058 + 10, ph = H * 0.024, r = ph / 2;
   const x = cx - pw/2, y = cy - ph/2;
   const fs = Math.min(W * 0.014, H * 0.022);
   ctx.save();
