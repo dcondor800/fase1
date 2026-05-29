@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Fase 1 — Copa Mundial Repsol</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0a1628; color: #fff; min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+  .wrapper { width: 100%; max-width: 480px; }
+  h1 { text-align: center; font-size: 1.3rem; margin-bottom: 4px; }
+  h1 span { color: #ff6b00; }
+  .subtitle { text-align: center; color: #8899bb; font-size: 0.8rem; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab-btn { background: #132040; color: #aabbcc; border: 1px solid #1e3060; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
+  .tab-btn:hover { background: #1e3060; color: #fff; }
+  .tab-btn.active { background: #ff6b00; border-color: #ff6b00; color: #fff; font-weight: 600; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .form-card { background: #132040; border: 1px solid #1e3060; border-radius: 12px; padding: 20px; }
+  .form-card h2 { font-size: 0.95rem; margin-bottom: 16px; color: #ff6b00; text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-label { font-size: 0.72rem; color: #8899bb; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 14px; }
+  .field { margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .field label { font-size: 0.78rem; color: #aabbcc; flex: 1; }
+  .field input { width: 72px; background: #0d1c38; border: 1px solid #1e3060; border-radius: 6px; color: #fff; padding: 7px 8px; font-size: 0.9rem; text-align: center; }
+  .field input:focus { outline: none; border-color: #ff6b00; }
+  .field input::placeholder { color: #445577; }
+  hr.sep { border: none; border-top: 1px solid #1e3060; margin: 12px 0; }
+  .status { text-align: center; font-size: 0.72rem; color: #556688; margin-top: 10px; }
+  .status.ok { color: #09bdd2; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <h1>Copa Mundial <span>Repsol</span></h1>
+  <p class="subtitle">Fase 1 — Ingresá los resultados (Ej: 2-1)</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab(event,'fm')">Fútbol Masc.</button>
+    <button class="tab-btn" onclick="switchTab(event,'vl')">Vóley</button>
+    <button class="tab-btn" onclick="switchTab(event,'pd')">Pádel</button>
+    <button class="tab-btn" onclick="switchTab(event,'ff')">Fútbol Fem.</button>
+  </div>
+
+  <!-- FÚTBOL MASCULINO -->
+  <div class="panel active" id="panel-fm">
+    <div class="form-card">
+      <h2>Fútbol Masculino — Fecha 1</h2>
+      <div class="section-label">Campo 1</div>
+      <div class="field"><label>07:40 — Marruecos vs Brasil</label><input type="text" id="fm1_c1_1" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>08:30 — Marruecos vs Portugal</label><input type="text" id="fm1_c1_2" placeholder="0-0" oninput="publish()"></div>
+      <div class="section-label">Campo 2</div>
+      <div class="field"><label>07:40 — Francia vs Inglaterra</label><input type="text" id="fm1_c2_1" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>08:30 — Francia vs España</label><input type="text" id="fm1_c2_2" placeholder="1-0" oninput="publish()"></div>
+      <div class="section-label">Campo 3</div>
+      <div class="field"><label>07:40 — Argentina vs Ecuador</label><input type="text" id="fm1_c3_1" placeholder="3-0" oninput="publish()"></div>
+      <div class="field"><label>08:30 — Argentina vs Países Bajos</label><input type="text" id="fm1_c3_2" placeholder="2-2" oninput="publish()"></div>
+    </div>
+  </div>
+
+  <!-- VÓLEY MIXTO -->
+  <div class="panel" id="panel-vl">
+    <div class="form-card">
+      <h2>Vóley Mixto — Fecha 1</h2>
+      <div class="section-label">Campo 1</div>
+      <div class="field"><label>07:40 — EE.UU vs Suiza</label><input type="text" id="vl1_c1_1" placeholder="3-1" oninput="publish()"></div>
+      <div class="field"><label>08:20 — Perú vs Senegal</label><input type="text" id="vl1_c1_2" placeholder="3-2" oninput="publish()"></div>
+      <div class="field"><label>09:00 — Corea del Sur vs México</label><input type="text" id="vl1_c1_3" placeholder="2-3" oninput="publish()"></div>
+      <div class="field"><label>09:40 — Perú vs Japón</label><input type="text" id="vl1_c1_4" placeholder="3-0" oninput="publish()"></div>
+      <div class="field"><label>10:20 — EE.UU vs Uruguay</label><input type="text" id="vl1_c1_5" placeholder="3-1" oninput="publish()"></div>
+      <div class="section-label">Campo 2</div>
+      <div class="field"><label>07:40 — Corea del Sur vs Uruguay</label><input type="text" id="vl1_c2_1" placeholder="3-2" oninput="publish()"></div>
+      <div class="field"><label>08:20 — Japón vs Croacia</label><input type="text" id="vl1_c2_2" placeholder="3-1" oninput="publish()"></div>
+      <div class="field"><label>09:00 — México vs Suiza</label><input type="text" id="vl1_c2_3" placeholder="3-0" oninput="publish()"></div>
+      <div class="field"><label>09:40 — Irán vs Senegal</label><input type="text" id="vl1_c2_4" placeholder="2-3" oninput="publish()"></div>
+      <div class="field"><label>10:20 — Corea del Sur vs México</label><input type="text" id="vl1_c2_5" placeholder="3-1" oninput="publish()"></div>
+    </div>
+  </div>
+
+  <!-- PÁDEL -->
+  <div class="panel" id="panel-pd">
+    <div class="form-card">
+      <h2>Pádel — Fecha 1</h2>
+      <div class="section-label">Campo 1</div>
+      <div class="field"><label>07:40 — Arabia S. vs Paraguay</label><input type="text" id="pd1_c1_1" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>08:10 — Canadá vs Panamá</label><input type="text" id="pd1_c1_2" placeholder="2-0" oninput="publish()"></div>
+      <div class="field"><label>08:40 — Arabia S. vs Suecia</label><input type="text" id="pd1_c1_3" placeholder="1-2" oninput="publish()"></div>
+      <div class="field"><label>09:10 — Canadá vs Noruega</label><input type="text" id="pd1_c1_4" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>09:40 — Arabia S. vs Turquía</label><input type="text" id="pd1_c1_5" placeholder="2-0" oninput="publish()"></div>
+      <div class="section-label">Campo 2</div>
+      <div class="field"><label>07:40 — Suecia vs Turquía</label><input type="text" id="pd1_c2_1" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>08:10 — Noruega vs Australia</label><input type="text" id="pd1_c2_2" placeholder="0-2" oninput="publish()"></div>
+      <div class="field"><label>08:40 — Austria vs Paraguay</label><input type="text" id="pd1_c2_3" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>09:10 — Egipto vs Panamá</label><input type="text" id="pd1_c2_4" placeholder="2-0" oninput="publish()"></div>
+      <div class="field"><label>09:40 — Suecia vs Austria</label><input type="text" id="pd1_c2_5" placeholder="1-2" oninput="publish()"></div>
+    </div>
+  </div>
+
+  <!-- FÚTBOL FEMENINO -->
+  <div class="panel" id="panel-ff">
+    <div class="form-card">
+      <h2>Fútbol Femenino — Fase 1</h2>
+      <div class="section-label">Campo 2</div>
+      <div class="field"><label>07:00 — Alemania vs Bélgica</label><input type="text" id="ff2_1" placeholder="2-1" oninput="publish()"></div>
+      <div class="field"><label>07:50 — Alemania vs Colombia</label><input type="text" id="ff2_2" placeholder="1-0" oninput="publish()"></div>
+      <div class="field"><label>08:40 — Bélgica vs Colombia</label><input type="text" id="ff2_3" placeholder="2-2" oninput="publish()"></div>
+    </div>
+  </div>
+
+  <p class="status" id="status">Ingresá un resultado para sincronizar</p>
+</div>
+
+<script>
+const FIELDS = [
+  'fm1_c1_1','fm1_c1_2',
+  'fm1_c2_1','fm1_c2_2',
+  'fm1_c3_1','fm1_c3_2',
+  'vl1_c1_1','vl1_c1_2','vl1_c1_3','vl1_c1_4','vl1_c1_5',
+  'vl1_c2_1','vl1_c2_2','vl1_c2_3','vl1_c2_4','vl1_c2_5',
+  'pd1_c1_1','pd1_c1_2','pd1_c1_3','pd1_c1_4','pd1_c1_5',
+  'pd1_c2_1','pd1_c2_2','pd1_c2_3','pd1_c2_4','pd1_c2_5',
+  'ff2_1','ff2_2','ff2_3'
+];
+
+function switchTab(e, id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+function publish() {
+  const data = {};
+  FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) data[id] = el.value.trim();
+  });
+  localStorage.setItem('fase1_data', JSON.stringify(data));
+  const st = document.getElementById('status');
+  st.textContent = 'Sincronizado ✓';
+  st.className = 'status ok';
+}
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('fase1_data');
+  if (!saved) return;
+  const data = JSON.parse(saved);
+  FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && data[id]) el.value = data[id];
+  });
+});
+</script>
+</body>
+</html>
